@@ -9,15 +9,19 @@ import pickle
 def load_assets():
     with open("stroke_prediction_model.pkl", "rb") as file:
         model = pickle.load(file)
-    
-    # Optional: Load your saved scaler if trained separately
-    # with open("scaler.pkl", "rb") as s_file:
-    #     scaler = pickle.load(s_file)
-    # return model, scaler
-    
-    return model
 
-model = load_assets()
+    # If your model was trained on SCALED features, you must load and use
+    # the same scaler here, or predictions will be unreliable/stuck.
+    scaler = None
+    try:
+        with open("scaler.pkl", "rb") as s_file:
+            scaler = pickle.load(s_file)
+    except FileNotFoundError:
+        pass
+
+    return model, scaler
+
+model, scaler = load_assets()
 
 # ----------------------------
 # Page Configuration
@@ -57,11 +61,11 @@ smoking_status = st.selectbox(
 # ----------------------------
 # Encoding
 # ----------------------------
-gender = 1 if gender == "Male" else 0
-hypertension = 1 if hypertension == "Yes" else 0
-heart_disease = 1 if heart_disease == "Yes" else 0
-ever_married = 1 if ever_married == "Yes" else 0
-Residence_type = 1 if Residence_type == "Urban" else 0
+gender_enc = 1 if gender == "Male" else 0
+hypertension_enc = 1 if hypertension == "Yes" else 0
+heart_disease_enc = 1 if heart_disease == "Yes" else 0
+ever_married_enc = 1 if ever_married == "Yes" else 0
+Residence_type_enc = 1 if Residence_type == "Urban" else 0
 
 # Work Type One-Hot Encoding
 work_type_Never_worked = 1 if work_type == "Never_worked" else 0
@@ -78,12 +82,12 @@ smoking_status_smokes = 1 if smoking_status == "smokes" else 0
 # Create Input DataFrame
 # ----------------------------
 input_data = pd.DataFrame({
-    "gender": [gender],
+    "gender": [gender_enc],
     "age": [age],
-    "hypertension": [hypertension],
-    "heart_disease": [heart_disease],
-    "ever_married": [ever_married],
-    "Residence_type": [Residence_type],
+    "hypertension": [hypertension_enc],
+    "heart_disease": [heart_disease_enc],
+    "ever_married": [ever_married_enc],
+    "Residence_type": [Residence_type_enc],
     "avg_glucose_level": [avg_glucose_level],
     "bmi": [bmi],
     "work_type_Never_worked": [work_type_Never_worked],
@@ -103,23 +107,37 @@ if hasattr(model, "feature_names_in_"):
 # Prediction
 # ----------------------------
 if st.button("Predict Stroke"):
-    # Apply scaler here if using a standalone scaler object:
-    # scaled_input = scaler.transform(input_data)
-    # probability = model.predict_proba(scaled_input)[0][1]
-    
-    probability = model.predict_proba(input_data)[0][1]
-    
-    # Threshold check (0.5 or custom threshold)
+
+    model_input = input_data
+    if scaler is not None:
+        model_input = pd.DataFrame(
+            scaler.transform(input_data),
+            columns=input_data.columns
+        )
+
+    # Confirm which column index actually corresponds to the "stroke" class.
+    # For a binary classifier this is usually 1, but we check model.classes_
+    # to be safe instead of assuming.
+    classes = list(model.classes_) if hasattr(model, "classes_") else [0, 1]
+    stroke_class = 1
+    stroke_index = classes.index(stroke_class) if stroke_class in classes else 1
+
+    probability = model.predict_proba(model_input)[0][stroke_index]
     prediction = 1 if probability >= 0.5 else 0
 
     st.subheader("Prediction")
+    st.write(f"Predicted probability of stroke: **{probability:.2%}**")
 
-    if prediction == 0:
+    if prediction == 1:
         st.error("⚠️ High Risk of Stroke")
     else:
         st.success("✅ Low Risk of Stroke")
+
     # Debugging helper
     with st.expander("🔍 Debug Input Data"):
-        st.dataframe(input_data)
+        st.write("Model classes:", classes)
+        st.write("Scaler applied:", scaler is not None)
+        st.dataframe(model_input)
+
 st.markdown("---")
 st.caption("Stroke Prediction using Logistic Regression")
