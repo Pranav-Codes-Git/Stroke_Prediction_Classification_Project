@@ -134,7 +134,7 @@ if st.button("Predict Stroke"):
 
     st.subheader("Prediction")
 
-    if prediction == 1:
+    if prediction == 0:
         st.error("⚠️ High Risk of Stroke")
     else:
         st.success("✅ Low Risk of Stroke")
