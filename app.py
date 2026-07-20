@@ -118,10 +118,6 @@ if st.button("Predict Stroke"):
         st.error("⚠️ High Risk of Stroke")
     else:
         st.success("✅ Low Risk of Stroke")
-
-    st.metric("Stroke Probability", f"{probability*100:.2f}%")
-    st.progress(float(probability))
-
     # Debugging helper
     with st.expander("🔍 Debug Input Data"):
         st.dataframe(input_data)
