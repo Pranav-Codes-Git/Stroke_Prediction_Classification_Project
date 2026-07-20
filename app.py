@@ -133,7 +133,6 @@ if st.button("Predict Stroke"):
     prediction = 1 if probability >= 0.5 else 0
 
     st.subheader("Prediction")
-    st.write(f"Predicted probability of stroke: **{probability:.2%}**")
 
     if prediction == 1:
         st.error("⚠️ High Risk of Stroke")
