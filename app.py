@@ -100,8 +100,15 @@ input_data = pd.DataFrame({
 })
 
 # Ensure columns match model expectation if feature_names_in_ exists
+expected_cols = None
+missing_from_input = []
+dropped_from_input = []
 if hasattr(model, "feature_names_in_"):
-    input_data = input_data.reindex(columns=model.feature_names_in_, fill_value=0)
+    expected_cols = list(model.feature_names_in_)
+    built_cols = list(input_data.columns)
+    missing_from_input = [c for c in expected_cols if c not in built_cols]
+    dropped_from_input = [c for c in built_cols if c not in expected_cols]
+    input_data = input_data.reindex(columns=expected_cols, fill_value=0)
 
 # ----------------------------
 # Prediction
@@ -137,7 +144,20 @@ if st.button("Predict Stroke"):
     with st.expander("🔍 Debug Input Data"):
         st.write("Model classes:", classes)
         st.write("Scaler applied:", scaler is not None)
+        st.write("Model's expected feature names:", expected_cols)
+        if missing_from_input:
+            st.warning(
+                f"These columns the model expects were NOT built by the app, "
+                f"and got silently filled with 0: {missing_from_input}"
+            )
+        if dropped_from_input:
+            st.warning(
+                f"These columns the app built were NOT expected by the model, "
+                f"and got silently dropped: {dropped_from_input}"
+            )
         st.dataframe(model_input)
 
+st.markdown("---")
+st.caption("Stroke Prediction using Logistic Regression")
 st.markdown("---")
 st.caption("Stroke Prediction using Logistic Regression")
