@@ -277,13 +277,6 @@ if st.button("🩺 Predict Stroke Risk"):
     prediction = probability >= 0.5
 
     st.subheader("Prediction Result")
-
-    # Probability
-    st.metric(
-        label="Stroke Probability",
-        value=f"{probability*100:.2f}%"
-    )
-
     # Progress Bar
     st.progress(float(probability))
 
